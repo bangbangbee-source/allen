@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <!-- 引入 CryptoJS 加密库 -->
+    <!-- 1. 新增：加密库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,61 +17,51 @@
         .custom-scroll::-webkit-scrollbar { height: 10px; width: 10px; }
         .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 5px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; border: 2px solid #f1f5f9; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .table-cell-wide { min-width: 320px; }
         
-        /* 登录页淡入淡出动画 */
-        .fade-enter-active, .fade-leave-active { transition: opacity 0.5s ease; }
-        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        .zoom-enter-active, .zoom-leave-active { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .zoom-enter-from, .zoom-leave-to { opacity: 0; transform: scale(0.9) translateY(20px); }
+        .modal-enter-active, .modal-leave-active { transition: all 0.25s ease; }
+        .modal-enter-from, .modal-leave-to { opacity: 0; transform: scale(0.98); }
         
         .loading-overlay {
             position: fixed; inset: 0; background: rgba(255,255,255,0.8); 
             z-index: 999; display: flex; align-items: center; justify-content: center;
             backdrop-filter: blur(2px);
         }
+
+        /* 2. 新增：登录页动画 */
+        .login-fade-enter-active, .login-fade-leave-active { transition: opacity 0.5s ease; }
+        .login-fade-enter-from, .login-fade-leave-to { opacity: 0; }
     </style>
 </head>
 <body class="bg-[#f3f4f6] min-h-screen text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-700">
     <div id="app">
         
-        <!-- 🔐 访问锁界面 -->
-        <transition name="fade">
+        <!-- 3. 新增：登录验证遮罩层 (完全独立，不影响原UI) -->
+        <transition name="login-fade">
             <div v-if="!isAuthenticated" class="fixed inset-0 z-[1000] bg-slate-900 flex items-center justify-center p-4">
                 <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md text-center">
-                    <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                         <i class="fas fa-shield-halved text-3xl"></i>
                     </div>
-                    <h2 class="text-2xl font-bold text-slate-800 mb-2">私有数据访问限制</h2>
-                    <p class="text-slate-500 mb-8 text-sm">请输入授权密钥以同步云端看板</p>
-                    
-                    <div class="relative mb-4">
-                        <input 
-                            v-model="passwordInput" 
-                            @keyup.enter="checkPassword"
-                            type="password" 
-                            placeholder="在此输入访问密钥" 
-                            class="w-full px-5 py-4 bg-slate-100 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-xl outline-none transition-all text-center text-lg tracking-widest font-mono"
-                        >
-                    </div>
-                    
-                    <button 
-                        @click="checkPassword"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-[0.98] flex items-center justify-center"
-                    >
-                        <i class="fas fa-unlock-alt mr-2"></i> 验证并进入系统
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">身份验证</h2>
+                    <p class="text-slate-500 mb-8">本系统仅供内部团队使用</p>
+                    <input v-model="passwordInput" @keyup.enter="checkPassword" type="password" placeholder="请输入访问密钥" 
+                           class="w-full px-5 py-4 bg-slate-100 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-xl outline-none transition-all text-center text-lg tracking-widest mb-4">
+                    <button @click="checkPassword" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98]">
+                        验证并进入
                     </button>
-                    
-                    <p v-if="loginError" class="text-rose-500 text-sm mt-4 font-bold animate-bounce">
-                        <i class="fas fa-exclamation-triangle mr-1"></i> 密钥错误，拒绝访问
-                    </p>
-                    <div class="mt-10 pt-6 border-t border-slate-100">
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Morsen Product Development System</p>
-                    </div>
+                    <p v-if="loginError" class="text-rose-500 text-sm mt-4 font-bold animate-bounce">密钥错误，拒绝访问</p>
                 </div>
             </div>
         </transition>
 
-        <!-- 🚀 主看板内容 (验证通过后显示) -->
+        <!-- 🚀 原有 UI 内容开始 (使用 v-if 控制) -->
         <div v-if="isAuthenticated" class="p-4 lg:p-8 max-w-[1920px] mx-auto">
             
+            <!-- 原有加载动画 -->
             <div v-if="isLoading" class="loading-overlay">
                 <div class="flex flex-col items-center">
                     <i class="fas fa-circle-notch fa-spin text-4xl text-blue-600"></i>
@@ -79,116 +69,213 @@
                 </div>
             </div>
 
-            <!-- 顶部标题栏 -->
+            <!-- 原有标题栏 -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-5 px-1">
                 <div>
                     <h1 class="text-3xl font-extrabold flex items-center gap-3 text-slate-900 tracking-tight">
                         <span class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
                             <i class="fas fa-cloud text-xl"></i>
                         </span>
-                        摩尔森新品开发进度 <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full ml-2">团队协作版</span>
+                        摩尔森新品开发进度 <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full ml-2">云端协作版</span>
                     </h1>
-                    <p class="text-slate-500 text-sm mt-2 ml-1 font-medium flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 数据已实时同步至 Supabase
-                    </p>
+                    <p class="text-slate-500 text-base mt-2 ml-1 font-medium">数据实时同步，团队成员刷新即可查看最新进度</p>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button @click="logout" class="text-slate-400 hover:text-rose-500 text-xs font-bold uppercase tracking-widest transition-colors mr-2">
-                        <i class="fas fa-power-off mr-1"></i> 退出登录
-                    </button>
-                    <button @click="openAddModal" class="bg-slate-900 text-white px-6 py-3.5 rounded-xl hover:bg-slate-800 hover:shadow-xl transition-all flex items-center font-bold text-sm shadow-lg shadow-slate-200">
-                        <i class="fas fa-plus mr-2"></i> 新增立项
+                <div class="flex flex-wrap items-center gap-4">
+                    <button @click="logout" class="text-slate-400 hover:text-rose-500 text-xs font-bold uppercase mr-4 tracking-widest"><i class="fas fa-power-off mr-1"></i> 安全退出</button>
+                    <button @click="openAddModal" class="bg-slate-900 text-white px-6 py-3.5 rounded-xl hover:bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center font-bold text-sm group shadow-lg shadow-slate-200">
+                        <i class="fas fa-plus mr-2 group-hover:rotate-90 transition-transform"></i> 新增立项
                     </button>
                 </div>
             </div>
 
-            <!-- 统计面板 -->
+            <!-- 原有统计面板 -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
-                    <div>
-                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">正在进行</div>
-                        <div class="text-3xl font-black text-slate-800">{{ projects.length }}</div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">正在进行</div>
+                            <div class="text-4xl font-black text-slate-800 tracking-tight">{{ projects.length }}</div>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-spinner fa-pulse"></i></div>
                     </div>
-                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-spinner fa-pulse"></i></div>
                 </div>
-                <!-- 此处省略其他重复卡片，保持原有逻辑 -->
-                <div class="bg-gradient-to-br from-indigo-600 to-blue-800 p-6 rounded-2xl shadow-xl text-white flex flex-col justify-between">
-                    <div class="text-white/60 text-[10px] font-bold uppercase mb-1 tracking-widest">Security Status</div>
-                    <div class="text-sm font-medium">访问控制已启用</div>
-                    <div class="text-[10px] text-indigo-200 mt-2"><i class="fas fa-user-check"></i> 经授权的团队访问</div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">技术攻关</div>
+                            <div class="text-4xl font-black text-rose-600 tracking-tight">{{ projects.filter(p => p.content.difficulty).length }}</div>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-500"><i class="fas fa-wrench"></i></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">专利保护</div>
+                            <div class="text-4xl font-black text-emerald-600 tracking-tight">{{ projects.filter(p => p.content.patentCN || p.content.patentEU || p.content.patentUS).length }}</div>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500"><i class="fas fa-file-contract"></i></div>
+                    </div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-indigo-600 to-blue-800 p-6 rounded-2xl shadow-xl text-white relative overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Database</div>
+                        <div class="text-lg font-medium opacity-90 leading-tight">Supabase Connected<br>Access Locked</div>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-indigo-200 mt-2">
+                        <i class="fas fa-user-shield"></i> 团队私有访问模式
+                    </div>
                 </div>
             </div>
 
-            <!-- 表格区域 -->
+            <!-- 原有表格区域 (保留所有字段) -->
             <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scroll">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-slate-50/80 border-b border-slate-200 text-xs font-bold uppercase tracking-widest text-slate-500">
-                                <th class="p-6 sticky left-0 bg-slate-50 z-10">项目名称</th>
-                                <th class="p-6">外观</th>
-                                <th class="p-6">研发团队</th>
+                                <th class="p-6 sticky left-0 bg-slate-50 z-10">项目名称 / 类别</th>
+                                <th class="p-6 text-center">外观预览</th>
+                                <th class="p-6 table-cell-wide">规格参数</th>
+                                <th class="p-6">研发团队 / PM</th>
                                 <th class="p-6">当前阶段</th>
-                                <th class="p-6 min-w-[300px]">进度详情</th>
+                                <th class="p-6 table-cell-wide">进度详情 / 痛点</th>
+                                <th class="p-6">开发周期</th>
+                                <th class="p-6">专利布局</th>
                                 <th class="p-6 text-center">操作</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-[15px]">
-                            <tr v-for="item in projects" :key="item.id" class="hover:bg-blue-50/40 transition-colors">
-                                <td class="p-6 sticky left-0 bg-white z-10 font-bold text-slate-800">{{ item.content.name }}</td>
-                                <td class="p-6">
-                                    <div class="w-16 h-12 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center">
+                            <tr v-for="(item, index) in projects" :key="item.id" class="hover:bg-blue-50/40 transition-colors group">
+                                <td class="p-6 sticky left-0 bg-white z-10 group-hover:bg-[#fbfdff] transition-colors align-top">
+                                    <div class="font-bold text-slate-800 text-base mb-2">{{ item.content.name }}</div>
+                                    <span class="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-md text-xs font-semibold">{{ item.content.category }}</span>
+                                </td>
+                                <td class="p-6 align-top">
+                                    <div class="relative w-24 h-20 mx-auto bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center cursor-zoom-in overflow-hidden img-wrapper transition-all hover:border-blue-400 hover:shadow-lg hover:scale-105"
+                                         @mouseenter="showZoom($event, item.content.image)"
+                                         @mouseleave="hideZoom"
+                                         @click="triggerUpload(item)">
                                         <img v-if="item.content.image" :src="item.content.image" class="w-full h-full object-cover">
-                                        <i v-else class="fas fa-image text-slate-300"></i>
+                                        <div v-else class="text-center"><i class="fas fa-image text-slate-300 text-xl mb-1"></i><div class="text-[10px] text-slate-400">上传</div></div>
+                                        <input type="file" :id="'file-'+item.id" class="hidden" accept="image/*" @change="handleFileUpload($event, item)">
                                     </div>
                                 </td>
-                                <td class="p-6">
-                                    <div class="text-xs space-y-1">
-                                        <div class="font-bold text-slate-700">{{ item.content.ownerMain }} (PM)</div>
-                                        <div class="text-slate-400">ME: {{ item.content.ownerMech }}</div>
+                                <td class="p-6 text-slate-600 leading-7 align-top">{{ item.content.spec || '-' }}</td>
+                                <td class="p-6 align-top">
+                                    <div class="space-y-2 w-full max-w-[180px]">
+                                        <div class="flex items-center text-xs bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                                            <span class="text-slate-400 font-medium w-10 shrink-0">结构</span><span class="font-bold text-slate-700 truncate">{{ item.content.ownerMech }}</span>
+                                        </div>
+                                        <div class="flex items-center text-xs bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                                            <span class="text-slate-400 font-medium w-10 shrink-0">电子</span><span class="font-bold text-slate-700 truncate">{{ item.content.ownerElec }}</span>
+                                        </div>
+                                        <div class="flex items-center text-xs bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100">
+                                            <span class="text-indigo-400 font-bold w-10 shrink-0">PM</span><span class="font-bold text-indigo-700 truncate">{{ item.content.ownerMain }}</span>
+                                        </div>
                                     </div>
                                 </td>
-                                <td class="p-6">
-                                    <span class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[11px] font-bold">{{ item.content.stage }}</span>
+                                <td class="p-6 align-top"><span :class="stageBadgeColor(item.content.stage)">{{ item.content.stage }}</span></td>
+                                <td class="p-6 align-top">
+                                    <div class="text-slate-700 font-medium mb-3 leading-relaxed">{{ item.content.progressDesc }}</div>
+                                    <div v-if="item.content.difficulty" class="flex items-start gap-2.5 text-sm text-rose-700 bg-rose-50 p-3 rounded-xl border border-rose-100"><i class="fas fa-circle-exclamation mt-1"></i><span>{{ item.content.difficulty }}</span></div>
                                 </td>
-                                <td class="p-6 text-sm text-slate-600">{{ item.content.progressDesc }}</td>
-                                <td class="p-6 text-center space-x-2">
-                                    <button @click="openEditModal(item)" class="text-slate-400 hover:text-blue-600"><i class="fas fa-edit"></i></button>
-                                    <button @click="removeProject(item)" class="text-slate-400 hover:text-rose-500"><i class="fas fa-trash"></i></button>
+                                <td class="p-6 whitespace-nowrap align-top">
+                                    <div class="flex flex-col gap-2 text-xs">
+                                        <div class="flex items-center text-slate-500 gap-2"><span class="font-bold">S:</span><span class="font-mono bg-slate-100 px-2 py-1 rounded">{{ item.content.startTime || '--' }}</span></div>
+                                        <div class="flex items-center text-blue-600 font-bold gap-2"><span>E:</span><span class="font-mono bg-blue-50 px-2 py-1 rounded border border-blue-100">{{ item.content.endTime || '进行中' }}</span></div>
+                                    </div>
+                                </td>
+                                <td class="p-6 align-top">
+                                    <div class="flex gap-2">
+                                        <span :class="patentIconColor(item.content.patentCN)">CN</span>
+                                        <span :class="patentIconColor(item.content.patentEU)">EU</span>
+                                        <span :class="patentIconColor(item.content.patentUS)">US</span>
+                                    </div>
+                                </td>
+                                <td class="p-6 text-center align-top">
+                                    <div class="flex justify-center gap-3">
+                                        <button @click="openEditModal(item)" class="w-9 h-9 rounded-full bg-white text-slate-400 hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-slate-200 flex items-center justify-center"><i class="fas fa-pen text-sm"></i></button>
+                                        <button @click="removeProject(item)" class="w-9 h-9 rounded-full bg-white text-slate-400 hover:bg-rose-500 hover:text-white transition-all shadow-sm border border-slate-200 flex items-center justify-center"><i class="fas fa-trash text-sm"></i></button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            
-            <!-- 模态框逻辑保持不变... (省略重复代码以节省空间) -->
+
+            <!-- 原有图片悬浮 -->
+            <transition name="zoom">
+                <div v-if="zoom.show && zoom.src" class="fixed z-[100] pointer-events-none shadow-2xl border-4 border-white rounded-2xl overflow-hidden bg-white" :style="{ top: zoom.y + 'px', left: zoom.x + 'px' }">
+                    <img :src="zoom.src" class="max-w-[480px] max-h-[480px] object-contain block bg-slate-50">
+                </div>
+            </transition>
+
+            <!-- 原有模态框 (包含所有三列字段) -->
             <transition name="modal">
-                <div v-if="showModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-[1100]">
-                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col">
-                        <div class="px-8 py-6 border-b flex justify-between items-center bg-white sticky top-0">
-                            <h3 class="text-xl font-bold">{{ isEditMode ? '编辑项目' : '新增立项' }}</h3>
-                            <button @click="showModal = false" class="text-slate-400 hover:text-rose-500"><i class="fas fa-times text-xl"></i></button>
-                        </div>
-                        <div class="p-8 overflow-y-auto max-h-[70vh] space-y-5">
-                            <div><label class="block text-xs font-bold text-slate-500 mb-2">项目名称</label><input v-model="form.name" class="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 bg-slate-50"></div>
-                            <div><label class="block text-xs font-bold text-slate-500 mb-2">项目负责人 (PM)</label><input v-model="form.ownerMain" class="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 bg-slate-50"></div>
-                            <div><label class="block text-xs font-bold text-slate-500 mb-2">当前阶段</label><select v-model="form.stage" class="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 bg-slate-50"><option>概念定义</option><option>工业设计</option><option>结构/电子研发</option><option>手板/打样</option><option>模具开发</option><option>试产/检测</option><option>量产上市</option></select></div>
-                            <div><label class="block text-xs font-bold text-slate-500 mb-2">进度详情</label><textarea v-model="form.progressDesc" rows="4" class="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 bg-slate-50"></textarea></div>
-                        </div>
-                        <div class="px-8 py-5 border-t bg-slate-50 flex justify-end gap-3">
-                            <button @click="showModal = false" class="px-6 py-2 text-slate-400 font-bold hover:text-slate-600 transition-colors">取消</button>
-                            <button @click="handleSave" class="px-8 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200">确认同步</button>
+            <div v-if="showModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col">
+                    <div class="bg-white px-8 py-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                        <div><h3 class="text-2xl font-bold text-slate-800">{{ isEditMode ? '编辑项目详情' : '创建新项目' }}</h3></div>
+                        <button @click="showModal = false" class="bg-slate-50 text-slate-400 w-10 h-10 rounded-full hover:bg-rose-50 hover:text-rose-500 transition-all flex items-center justify-center"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <div class="p-8 overflow-y-auto custom-scroll grow">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                            <div class="space-y-6">
+                                <div class="flex items-center gap-2 pb-2 border-b border-slate-100"><div class="w-1 h-4 bg-blue-600 rounded-full"></div><h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">产品定义</h4></div>
+                                <div><label class="block text-sm font-semibold text-slate-700 mb-2">产品名称 *</label><input v-model="form.name" class="w-full border border-slate-300 rounded-xl px-4 py-3.5 text-base focus:border-blue-500 outline-none"></div>
+                                <div><label class="block text-sm font-semibold text-slate-700 mb-2">所属类别</label><input v-model="form.category" class="w-full border border-slate-300 rounded-xl px-4 py-3.5 text-base focus:border-blue-500 outline-none"></div>
+                                <div><label class="block text-sm font-semibold text-slate-700 mb-2">开发阶段</label>
+                                    <div class="relative"><select v-model="form.stage" class="w-full appearance-none border border-slate-300 rounded-xl px-4 py-3.5 text-base focus:border-blue-500 outline-none bg-white"><option>概念定义</option><option>工业设计</option><option>结构/电子研发</option><option>手板/打样</option><option>模具开发</option><option>试产/检测</option><option>量产上市</option></select><i class="fas fa-chevron-down absolute right-4 top-5 text-slate-400 text-xs pointer-events-none"></i></div>
+                                </div>
+                                <div><label class="block text-sm font-semibold text-slate-700 mb-2">规格描述</label><textarea v-model="form.spec" rows="4" class="w-full border border-slate-300 rounded-xl px-4 py-3.5 text-sm focus:border-blue-500 outline-none"></textarea></div>
+                            </div>
+                            <div class="space-y-6">
+                                <div class="flex items-center gap-2 pb-2 border-b border-slate-100"><div class="w-1 h-4 bg-indigo-600 rounded-full"></div><h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">执行与风险</h4></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1.5">结构负责人</label><input v-model="form.ownerMech" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:border-indigo-500 outline-none"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1.5">电子负责人</label><input v-model="form.ownerElec" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:border-indigo-500 outline-none"></div>
+                                </div>
+                                <div><label class="block text-xs font-bold text-slate-500 mb-1.5">项目PM/主导</label><input v-model="form.ownerMain" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:border-indigo-500 outline-none"></div>
+                                <div class="pt-2"><label class="block text-sm font-semibold text-slate-700 mb-2">当前进度说明</label><textarea v-model="form.progressDesc" rows="3" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none"></textarea></div>
+                                <div><label class="block text-sm font-semibold text-rose-600 mb-2 flex items-center"><i class="fas fa-bolt mr-1"></i> 技术难点/风险</label><textarea v-model="form.difficulty" rows="3" class="w-full border border-rose-200 bg-rose-50/50 rounded-xl px-4 py-3 text-sm focus:border-rose-400 outline-none"></textarea></div>
+                            </div>
+                            <div class="space-y-6">
+                                <div class="flex items-center gap-2 pb-2 border-b border-slate-100"><div class="w-1 h-4 bg-emerald-600 rounded-full"></div><h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">周期与专利</h4></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1.5">开始日期</label><input type="date" v-model="form.startTime" class="w-full border border-slate-300 rounded-xl p-3 text-sm text-slate-600"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1.5">预计结束</label><input type="date" v-model="form.endTime" class="w-full border border-slate-300 rounded-xl p-3 text-sm text-slate-600"></div>
+                                </div>
+                                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                                    <div class="text-xs font-bold text-slate-500 mb-4 flex items-center"><i class="fas fa-certificate mr-1.5"></i> 专利布局状态</div>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center gap-3"><span class="text-sm w-8 font-bold text-slate-700">CN</span><input v-model="form.patentCN" class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 outline-none"></div>
+                                        <div class="flex items-center gap-3"><span class="text-sm w-8 font-bold text-slate-700">EU</span><input v-model="form.patentEU" class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 outline-none"></div>
+                                        <div class="flex items-center gap-3"><span class="text-sm w-8 font-bold text-slate-700">US</span><input v-model="form.patentUS" class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 outline-none"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <div class="px-8 py-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0">
+                        <button @click="showModal = false" class="px-8 py-3 rounded-xl text-slate-500 font-semibold hover:bg-white hover:text-slate-700 border border-transparent hover:border-slate-200 transition-all text-sm">取消</button>
+                        <button @click="handleSave" class="px-10 py-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-xl transition-all font-bold tracking-wide flex items-center text-sm">
+                            <i class="fas fa-check mr-2"></i> {{ isEditMode ? '保存修改' : '确认发布' }}
+                        </button>
+                    </div>
                 </div>
+            </div>
             </transition>
         </div>
     </div>
 
     <script>
         // ==========================================
-        // 核心配置
+        // 配置区 (保留你的原配置)
         // ==========================================
         const SUPABASE_URL = 'https://ummmxyrbtbvilfgmlixa.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbW14eXJidGJ2aWxmZ21saXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NTMwMDQsImV4cCI6MjA4NDEyOTAwNH0.1Ga3quxR_GG9J8QNPdJy-q0ACJywxKH7jokom9zEEi0';
@@ -210,94 +297,137 @@
                     isAuthenticated: false,
                     passwordInput: '',
                     loginError: false,
-                    
+
                     supabase: null,
-                    isLoading: false,
+                    isLoading: true,
                     showModal: false,
                     isEditMode: false,
                     editingId: null,
-                    projects: [],
-                    form: { name: '', stage: '概念定义', ownerMain: '', ownerMech: '', progressDesc: '', image: '' }
+                    zoom: { show: false, src: '', x: 0, y: 0 },
+                    form: { 
+                        name: '', category: '', image: '', spec: '', ownerMech: '', ownerElec: '', ownerMain: '',
+                        stage: '概念定义', progressDesc: '', startTime: '', difficulty: '', endTime: '', 
+                        patentCN: '', patentEU: '', patentUS: '', remark: '' 
+                    },
+                    projects: []
                 }
             },
-            mounted() {
-                // 启动时检查本地缓存是否存过正确的哈希值
-                const savedToken = localStorage.getItem('morsen_auth_token');
+            async mounted() {
+                // 启动检查：是否已经登录过
+                const savedToken = localStorage.getItem('auth_token');
                 if (savedToken === PASSWORD_HASH && PASSWORD_HASH !== '在这里填入你的哈希值') {
                     this.isAuthenticated = true;
-                    this.initSupabase();
+                    this.initApp();
+                } else {
+                    this.isLoading = false;
                 }
             },
             methods: {
                 // 验证逻辑
                 checkPassword() {
-                    // 1. 将输入明文进行 SHA256 哈希计算
                     const hashedInput = CryptoJS.SHA256(this.passwordInput).toString();
-                    
-                    // 2. 对比哈希结果
                     if (hashedInput === PASSWORD_HASH) {
                         this.isAuthenticated = true;
                         this.loginError = false;
-                        // 3. 将哈希值存入本地，实现“记住登录”
-                        localStorage.setItem('morsen_auth_token', PASSWORD_HASH);
-                        this.initSupabase();
+                        localStorage.setItem('auth_token', PASSWORD_HASH);
+                        this.initApp();
                     } else {
                         this.loginError = true;
                         this.passwordInput = '';
-                        setTimeout(() => { this.loginError = false; }, 3000);
                     }
                 },
-
                 logout() {
-                    localStorage.removeItem('morsen_auth_token');
+                    localStorage.removeItem('auth_token');
                     location.reload();
                 },
-
-                async initSupabase() {
-                    this.isLoading = true;
+                async initApp() {
                     this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
                     await this.fetchData();
                 },
 
+                // 核心：从云端拉取数据
                 async fetchData() {
                     this.isLoading = true;
-                    const { data } = await this.supabase.from('projects').select('*').order('created_at', { ascending: false });
-                    this.projects = data || [];
+                    const { data, error } = await this.supabase
+                        .from('projects')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    if (error) console.error('Error:', error);
+                    else this.projects = data || [];
                     this.isLoading = false;
                 },
-
+                // 核心：保存数据
                 async handleSave() {
-                    if(!this.form.name) return alert('名称必填');
+                    if(!this.form.name) return alert('请填写产品名称');
                     this.isLoading = true;
+                    let error = null;
                     if(this.isEditMode) {
-                        await this.supabase.from('projects').update({ content: this.form }).eq('id', this.editingId);
+                        const { error: updateError } = await this.supabase.from('projects').update({ content: this.form }).eq('id', this.editingId);
+                        error = updateError;
                     } else {
-                        await this.supabase.from('projects').insert([{ content: this.form }]);
+                        const { error: insertError } = await this.supabase.from('projects').insert([{ content: this.form }]);
+                        error = insertError;
                     }
-                    await this.fetchData();
-                    this.showModal = false;
+                    if(error) alert('保存失败: ' + error.message);
+                    else { await this.fetchData(); this.showModal = false; }
                     this.isLoading = false;
                 },
-
+                // 核心：删除数据
                 async removeProject(item) {
-                    if(confirm('确定删除？')) {
+                    if(confirm('确定删除此项目？')) {
                         this.isLoading = true;
-                        await this.supabase.from('projects').delete().eq('id', item.id);
-                        await this.fetchData();
+                        const { error } = await this.supabase.from('projects').delete().eq('id', item.id);
+                        if(error) alert('删除失败');
+                        else await this.fetchData();
+                        this.isLoading = false;
                     }
                 },
-
+                // 图片上传
+                triggerUpload(item) { document.getElementById('file-' + item.id).click(); },
+                async handleFileUpload(event, item) {
+                    const file = event.target.files[0];
+                    if (!file || file.size > 500 * 1024) return alert('图片需小于 500KB');
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        item.content.image = e.target.result;
+                        this.isLoading = true;
+                        await this.supabase.from('projects').update({ content: item.content }).eq('id', item.id);
+                        this.isLoading = false;
+                    };
+                    reader.readAsDataURL(file);
+                },
+                // UI 辅助逻辑
                 openAddModal() {
                     this.isEditMode = false;
-                    this.form = { name: '', stage: '概念定义', ownerMain: '', ownerMech: '', progressDesc: '', image: '' };
+                    this.editingId = null;
+                    this.form = { name: '', category: '', image: '', spec: '', ownerMech: '', ownerElec: '', ownerMain: '', stage: '概念定义', progressDesc: '', startTime: '', difficulty: '', endTime: '', patentCN: '', patentEU: '', patentUS: '', remark: '' };
                     this.showModal = true;
                 },
-
                 openEditModal(item) {
                     this.isEditMode = true;
                     this.editingId = item.id;
                     this.form = JSON.parse(JSON.stringify(item.content));
                     this.showModal = true;
+                },
+                showZoom(e, src) {
+                    if(!src) return;
+                    this.zoom.src = src; this.zoom.show = true; this.updateZoomPos(e);
+                },
+                updateZoomPos(e) {
+                    let offset = 24;
+                    let x = e.clientX + offset; let y = e.clientY + offset;
+                    if (x + 500 > window.innerWidth) x = e.clientX - 520;
+                    if (y + 500 > window.innerHeight) y = e.clientY - 520;
+                    this.zoom.x = x; this.zoom.y = y;
+                },
+                hideZoom() { this.zoom.show = false; },
+                stageBadgeColor(stage) {
+                    const colors = { '概念定义': 'bg-slate-100 text-slate-600 ring-1 ring-slate-200', '工业设计': 'bg-sky-50 text-sky-700 ring-1 ring-sky-200', '结构/电子研发': 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200', '手板/打样': 'bg-violet-50 text-violet-700 ring-1 ring-violet-200', '模具开发': 'bg-orange-50 text-orange-700 ring-1 ring-orange-200', '试产/检测': 'bg-rose-50 text-rose-700 ring-1 ring-rose-200', '量产上市': 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300' };
+                    return `px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-sm ${colors[stage] || 'bg-gray-100'}`;
+                },
+                patentIconColor(status) {
+                    if (!status || status === '未布局' || status === '无') return 'text-slate-300 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded text-[11px] font-bold';
+                    return 'text-emerald-600 border border-emerald-200 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-bold';
                 }
             }
         }).mount('#app')
