@@ -1,0 +1,17 @@
+name: Supabase Keep Alive (Heartbeat)
+
+on:
+  schedule:
+    # 每天凌晨 0 点运行一次 (UTC时间)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 允许你手动点击按钮测试
+
+jobs:
+  ping_supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Heartbeat to Supabase
+        run: |
+          curl -X GET "${{ secrets.SB_URL }}/rest/v1/projects?select=count" \
+          -H "apikey: ${{ secrets.SB_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SB_KEY }}"
