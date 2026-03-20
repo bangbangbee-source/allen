@@ -14,6 +14,6 @@ jobs:
         run: |
           # 我们直接对根目录发一个 HEAD 请求，只要能连上就算活跃
           # 使用 -I 只下载头信息，速度更快且对数据库负担最小
-          curl -I -s "${{ secrets.https://ummmxyrbtbvilfgmlixa.supabase.co }}/rest/v1/" \
-          -H "apikey: ${{ secrets.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbW14eXJidGJ2aWxmZ21saXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NTMwMDQsImV4cCI6MjA4NDEyOTAwNH0.1Ga3quxR_GG9J8QNPdJy-q0ACJywxKH7jokom9zEEi0 }}" \
-          -H "Authorization: Bearer ${{ secrets.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbW14eXJidGJ2aWxmZ21saXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NTMwMDQsImV4cCI6MjA4NDEyOTAwNH0.1Ga3quxR_GG9J8QNPdJy-q0ACJywxKH7jokom9zEEi0 }}"
+          curl -I -s "${{ https://ummmxyrbtbvilfgmlixa.supabase.co }}/rest/v1/" \
+          -H "apikey: ${{ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbW14eXJidGJ2aWxmZ21saXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NTMwMDQsImV4cCI6MjA4NDEyOTAwNH0.1Ga3quxR_GG9J8QNPdJy-q0ACJywxKH7jokom9zEEi0 }}" \
+          -H "Authorization: Bearer ${{ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbW14eXJidGJ2aWxmZ21saXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NTMwMDQsImV4cCI6MjA4NDEyOTAwNH0.1Ga3quxR_GG9J8QNPdJy-q0ACJywxKH7jokom9zEEi0 }}"
