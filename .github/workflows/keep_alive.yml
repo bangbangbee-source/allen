@@ -4,7 +4,7 @@ on:
   schedule:
     # 每天凌晨 0 点运行一次 (UTC时间)
     - cron: '0 0 * * *'
-  workflow_dispatch: # 允许你手动点击按钮测试
+  workflow_dispatch: # 允许手动测试
 
 jobs:
   ping_supabase:
@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Send Heartbeat to Supabase
         run: |
-          curl -X GET "${{ secrets.SB_URL }}/rest/v1/projects?select=count" \
-          -H "apikey: ${{ secrets.SB_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SB_KEY }}"
+          # 我们直接对根目录发一个 HEAD 请求，只要能连上就算活跃
+          # 使用 -I 只下载头信息，速度更快且对数据库负担最小
+          curl -I -s "${{ secrets.https://ummmxyrbtbvilfgmlixa.supabase.co }}/rest/v1/" \
+          -H "apikey: ${{ secrets.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbW14eXJidGJ2aWxmZ21saXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NTMwMDQsImV4cCI6MjA4NDEyOTAwNH0.1Ga3quxR_GG9J8QNPdJy-q0ACJywxKH7jokom9zEEi0 }}" \
+          -H "Authorization: Bearer ${{ secrets.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbW14eXJidGJ2aWxmZ21saXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NTMwMDQsImV4cCI6MjA4NDEyOTAwNH0.1Ga3quxR_GG9J8QNPdJy-q0ACJywxKH7jokom9zEEi0 }}"
